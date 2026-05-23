@@ -1,4 +1,4 @@
-# Classificador de Fake News Eleitorais
+# Classificador de Fake News Eleitoral
 
 Projeto desenvolvido para a disciplina de Machine Learning com o objetivo de criar um classificador de Fake News utilizando aprendizado supervisionado.
 
