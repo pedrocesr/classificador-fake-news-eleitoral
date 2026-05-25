@@ -1,11 +1,16 @@
 from factcheckexplorer.factcheckexplorer import FactCheckLib
 
+# COLETA DE DADOS
+
 fact_check = FactCheckLib(
-    query="urna eletrônica fraude Bolsonaro Lula",
-    language="pt", 
-    num_results=500
+    query="eleição Bolsonaro Lula urna fraude voto TSE campanha",
+    language="pt",
+    num_results=1000
 )
 
 print("Iniciando coleta de dados...")
+
 fact_check.process()
-print("Processo concluído! Verifique o arquivo CSV na sua pasta.")
+
+print("Processo concluído!")
+print("Arquivo CSV gerado com sucesso.")
