@@ -1,90 +1,161 @@
 import pandas as pd
+
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix
+)
+
+from sklearn.utils import resample
 
 # 1: Preparar os dados
-print("Limpando e preparando o dataset...")
 
-# Carregando o arquivo gerado pela coleta
-df_bruto = pd.read_csv('urna_eletrônica_fraude_Bolsonaro_Lula.csv')
+print("Preparando dataset...")
 
-# Seleciona e renomeia para o padrão exigido Texto e Label
-df = df_bruto[['Claim', 'Verdict']].copy()
+df = pd.read_csv(
+    'urna_eletrônica_fraude_Bolsonaro_Lula.csv'
+)[['Claim', 'Verdict']]
+
 df.columns = ['Texto', 'Label']
 
-# Padroniza as Labels para Falso ou Verdadeiro
+df = df.dropna()
+
+# 2. PADRONIZAÇÃO
+
 mapa = {
+
+    # FALSOS
     'Falso': 'Falso',
     'falso': 'Falso',
     'Enganoso': 'Falso',
     'Sem contexto': 'Falso',
-    'não_é_bem_assim': 'Falso'
+    'não_é_bem_assim': 'Falso',
+    'Parcialmente falso': 'Falso',
+    'Impreciso': 'Falso',
+
+    # VERDADEIROS
+    'Verdadeiro': 'Verdadeiro',
+    'Verdade': 'Verdadeiro',
+    'Verdadeiro, mas': 'Verdadeiro'
 }
 
-df['Label'] = df['Label'].map(mapa).fillna('Verdadeiro')
-
-# Lista de notícias verdadeiras
-reais = pd.DataFrame([
-    {"Texto": "TSE confirma início da votação em todo o Brasil às 8h", "Label": "Verdadeiro"},
-    {"Texto": "Apuração das urnas eletrônicas acontece em tempo real", "Label": "Verdadeiro"},
-    {"Texto": "Eleitor pode usar o e-Título para justificar ausência", "Label": "Verdadeiro"},
-    {"Texto": "O Tribunal Superior Eleitoral confirma que o voto é obrigatório para brasileiros entre 18 e 70 anos.", "Label": "Verdadeiro"},
-    {"Texto": "As seções eleitorais em todo o Brasil funcionam das 8h às 17h no dia da eleição.", "Label": "Verdadeiro"},
-    {"Texto": "O transporte de armas e munições por colecionadores e caçadores é proibido no dia da votação.", "Label": "Verdadeiro"},
-    {"Texto": "O teste de integridade das urnas é realizado em todas as eleições na presença de entidades fiscalizadoras.", "Label": "Verdadeiro"},
-    {"Texto": "Para votar, o cidadão deve apresentar um documento oficial com foto, como RG ou CNH.", "Label": "Verdadeiro"},
-    {"Texto": "O site do Tribunal Superior Eleitoral disponibiliza o local de votação para consulta antecipada.", "Label": "Verdadeiro"},
-    {"Texto": "A Justiça Eleitoral oferece assistência especial para eleitores com deficiência ou mobilidade reduzida.", "Label": "Verdadeiro"},
-    {"Texto": "O resultado oficial das eleições é proclamado apenas pela Justiça Eleitoral após o encerramento da apuração.", "Label": "Verdadeiro"}
-])
-
-df = pd.concat([df, reais], ignore_index=True).dropna()
-
-# 2: Treinamento
-X = df['Texto']
-y = df['Label']
-
-# Divide treino (80%) e teste (20%)
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y
+df['Label'] = (
+    df['Label']
+    .astype(str)
+    .str.strip()
+    .map(mapa)
 )
 
-# Transforma texto em números utilizando TF-IDF
-vectorizer = TfidfVectorizer()
+df = df.dropna()
+
+# 3. FRASES MANUAIS
+
+extras = pd.DataFrame([
+
+    # VERDADEIROS
+    ["TSE confirma início da votação em todo o Brasil às 8h", "Verdadeiro"],
+    ["Apuração das urnas eletrônicas acontece em tempo real", "Verdadeiro"],
+    ["Eleitor pode usar o e-Título para justificar ausência", "Verdadeiro"],
+    ["Resultado oficial divulgado pelo TSE", "Verdadeiro"],
+    ["Urnas eletrônicas passam por testes de segurança", "Verdadeiro"],
+    ["O voto é obrigatório para maiores de 18 anos", "Verdadeiro"],
+    ["A Justiça Eleitoral divulga os resultados oficiais", "Verdadeiro"],
+
+    # FALSOS
+    ["Urnas eletrônicas foram fraudadas", "Falso"],
+    ["Hackers invadiram as urnas eletrônicas", "Falso"],
+    ["O TSE manipulou o resultado das eleições", "Falso"],
+    ["Bolsonaro venceu com 73 por cento dos votos", "Falso"],
+    ["Lula roubou milhões de votos", "Falso"],
+    ["Os votos foram alterados nas urnas eletrônicas", "Falso"]
+
+], columns=['Texto', 'Label'])
+
+df = pd.concat([df, extras], ignore_index=True)
+
+# 4. BALANCEAMENTO
+
+falsos = df[df['Label'] == 'Falso']
+verdadeiros = df[df['Label'] == 'Verdadeiro']
+
+if len(verdadeiros) < len(falsos):
+
+    verdadeiros = resample(
+        verdadeiros,
+        replace=True,
+        n_samples=len(falsos),
+        random_state=42
+    )
+
+elif len(falsos) < len(verdadeiros):
+
+    falsos = resample(
+        falsos,
+        replace=True,
+        n_samples=len(verdadeiros),
+        random_state=42
+    )
+
+df = pd.concat([falsos, verdadeiros])
+
+print("\nDistribuição balanceada:")
+print(df['Label'].value_counts())
+
+# 5. TREINAMENTO
+
+X_train, X_test, y_train, y_test = train_test_split(
+    df['Texto'],
+    df['Label'],
+    test_size=0.2,
+    random_state=42,
+    stratify=df['Label']
+)
+
+# 6. TF-IDF
+
+vectorizer = TfidfVectorizer(
+    ngram_range=(1, 2)
+)
 
 X_train_vec = vectorizer.fit_transform(X_train)
 X_test_vec = vectorizer.transform(X_test)
 
-# Treina o modelo Naive Bayes
+# 7. MODELO
+
 modelo = MultinomialNB()
+
 modelo.fit(X_train_vec, y_train)
 
-# 3: Métricas
+# 8. MÉTRICAS
+
 predicoes = modelo.predict(X_test_vec)
 
-print("\n--- RESULTADOS DO MODELO ---")
-print(f"Accuracy: {accuracy_score(y_test, predicoes)}")
+print("\n--- RESULTADOS ---")
 
-print("\nRelatório de Classificação:")
-print(classification_report(y_test, predicoes, zero_division=0))
+print(f"\nAccuracy: {accuracy_score(y_test, predicoes):.2f}")
+
+print("\nRelatório:")
+print(classification_report(y_test, predicoes))
 
 print("\nMatriz de Confusão:")
 print(confusion_matrix(y_test, predicoes))
 
-# 4: Classificação de novas frases
-def classificar_noticia(frase):
-    vec = vectorizer.transform([frase])
-    resultado = modelo.predict(vec)
-    return resultado[0]
+# 9. TESTE
 
 print("\n--- TESTE DE CLASSIFICAÇÃO ---")
 
-teste = input("Digite uma frase sobre as eleições para testar: ")
+while True:
 
-print(f"O modelo classificou como: {classificar_noticia(teste)}")
+    frase = input("\nDigite uma frase (ou 'sair'): ")
+
+    if frase.lower() == 'sair':
+        break
+
+    frase_vec = vectorizer.transform([frase])
+
+    resultado = modelo.predict(frase_vec)
+
+    print(f"\nClassificação: {resultado[0]}")
