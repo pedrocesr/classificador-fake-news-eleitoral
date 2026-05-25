@@ -2,6 +2,8 @@
 
 Projeto desenvolvido para a disciplina de Machine Learning com o objetivo de criar um classificador de Fake News utilizando aprendizado supervisionado.
 
+---
+
 ## Integrantes
 
 - Erica Araújo
@@ -20,13 +22,15 @@ Desenvolver um sistema capaz de classificar notícias e afirmações relacionada
 - Falso
 - Verdadeiro
 
+O projeto utiliza técnicas de Processamento de Linguagem Natural (PLN) e aprendizado supervisionado para identificar padrões em textos relacionados ao contexto eleitoral.
+
 ---
 
 ## Coleta de Dados
 
 A coleta de dados foi realizada utilizando a biblioteca:
 
-[FactCheckExplorer no GitHub](https://github.com/GONZOsint/factcheckexplorer?utm_source=chatgpt.com)
+:contentReference[oaicite:0]{index=0}
 
 Foram utilizadas palavras-chave relacionadas ao contexto eleitoral, como:
 
@@ -36,8 +40,15 @@ Foram utilizadas palavras-chave relacionadas ao contexto eleitoral, como:
 - fraude eleitoral
 - voto
 - eleição
+- TSE
+- campanha
 
-Os dados coletados foram armazenados em um arquivo CSV contendo textos e veredictos das notícias.
+Os dados coletados foram armazenados em um arquivo CSV contendo:
+
+- texto da notícia;
+- fonte;
+- veredito da checagem;
+- data de publicação.
 
 ---
 
@@ -55,7 +66,14 @@ Os veredictos foram padronizados para duas classes:
 - Falso
 - Verdadeiro
 
-Também foram adicionadas manualmente algumas notícias verdadeiras para melhorar o balanceamento do modelo.
+Exemplos de categorias convertidas para “Falso”:
+
+- Enganoso
+- Sem contexto
+- Parcialmente falso
+- Impreciso
+
+Também foram adicionados manualmente exemplos de notícias verdadeiras e falsas para melhorar o balanceamento e o aprendizado do modelo.
 
 ---
 
@@ -63,27 +81,37 @@ Também foram adicionadas manualmente algumas notícias verdadeiras para melhora
 
 O algoritmo utilizado foi:
 
-- Naive Bayes
+- Naive Bayes (MultinomialNB)
 
+O Naive Bayes foi escolhido por apresentar bom desempenho em classificação de textos, além de possuir baixo custo computacional e boa eficiência em tarefas de Processamento de Linguagem Natural.
+
+---
 
 ## Treinamento do Modelo
 
 Etapas realizadas:
 
-1. Separação dos dados em treino e teste
-2. Vetorização dos textos utilizando TF-IDF
-3. Treinamento do modelo
-4. Avaliação das métricas
+1. Coleta e preparação do dataset
+2. Separação dos dados em treino e teste
+3. Vetorização dos textos utilizando TF-IDF
+4. Utilização de unigramas e bigramas (`ngram_range=(1,2)`)
+5. Treinamento do modelo Naive Bayes
+6. Balanceamento das classes para evitar enviesamento do modelo
+7. Avaliação das métricas
 
 ---
 
 ## Métricas Avaliadas
+
+As seguintes métricas foram utilizadas para avaliar o desempenho do modelo:
 
 - Accuracy
 - Precision
 - Recall
 - F1-score
 - Matriz de Confusão
+
+Essas métricas permitiram analisar a capacidade do modelo em identificar corretamente notícias verdadeiras e falsas.
 
 ---
 
